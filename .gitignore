@@ -1,0 +1,9 @@
+.DS_Store
+.ipynb_checkpoints/
+.python-version
+*__pycache__
+*.egg-info
+tests/*.png
+tests/*.npz
+*slurm-*
+docs/build/*

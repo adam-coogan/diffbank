@@ -1,0 +1,17 @@
+black
+click
+diffjeom
+furo
+isort
+jax
+jaxlib
+jupyter
+matplotlib
+myst-parser
+numpy
+pytest
+scipy
+Sphinx
+sphinx-autodoc-typehints
+sphinxcontrib-napoleon
+tqdm
