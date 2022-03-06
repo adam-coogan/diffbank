@@ -19,7 +19,7 @@ below to get started.
 
 If you use `diffbank` in your work, please cite:
 
-```latex
+```text
 @article{Coogan:2022qxs,
     author = "Coogan, Adam and Edwards, Thomas D. P. and Chia, Horng Sheng and
               George, Richard N. and Freese, Katherine and Messick, Cody and
