@@ -20,15 +20,16 @@ below to get started.
 If you use `diffbank` in your work, please cite:
 
 ```latex
-@article{??????,
-    author = "Coogan, Adam and Edwards, Thomas D. P. and Chia, Horng Shen and
+@article{Coogan:2022qxs,
+    author = "Coogan, Adam and Edwards, Thomas D. P. and Chia, Horng Sheng and
               George, Richard N. and Freese, Katherine and Messick, Cody and
               Setzer, Christian N. and Weniger, Christoph and Zimmerman, Aaron",
     title = "{Efficient Template Bank Generation with Differentiable Waveforms}",
-    eprint = "2202.?????",
+    eprint = "2202.09380",
     archivePrefix = "arXiv",
-    primaryClass = "astro-ph.??",
-    month = "02",
+    primaryClass = "astro-ph.IM",
+    reportNumber = "UTTG 26-2021, NORDITA-2022-004",
+    month = "2",
     year = "2022"
 }
 ```
