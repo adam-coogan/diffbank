@@ -1,11 +1,14 @@
 # Usage
 
+TL;DR: check out the [`minimal_example.py`](https://github.com/adam-coogan/diffbank/blob/main/scripts/minimal_example.py)
+script.
+
 There are two interfaces to `diffbank`: a set of bank generation functions and
 the convenient {class}`diffbank.bank.Bank` class wrapper. The first interface is
 more in keeping with `jax`'s functional approach, but we expect other users will
 find the class interface more convenient. This page will show you how to use both.
 
-Check out our [`genbank_*.py` scripts](https://github.com/adam-coogan/diffbank/tree/main/scripts)
+Take a look at our [`genbank_*.py` scripts](https://github.com/adam-coogan/diffbank/tree/main/scripts)
 for more examples.
 
 ## Waveform model and setup
@@ -28,7 +31,7 @@ black hole masses to lie between 1 and 3 solar masses.
 ```python
 from diffbank.waveforms.threePN_simple import Psi, amp
 
-m_range = (1.0, 3.0)
+m_range = (2.0, 3.0)
 ```
 
 Our bank generation scheme samples from the parameter space using the metric density.
@@ -83,11 +86,13 @@ bank = Bank(amp, Psi, fs, Sn, m_star, eta_star, sampler, name=f"3pn-bank")
 Before we can generate the bank, we need to compute the maximum value of the ratio
 between the metric density and the base sampler density. For this waveform model
 we can easily find this point through numerical optimization, but it's more convenient
-to estimate it with [empirical supremum rejection sampling](https://bookdown.org/rdpeng/advstatcomp/rejection-sampling.html#empirical-supremum-rejection-sampling):
+to estimate it with [empirical supremum rejection sampling](https://bookdown.org/rdpeng/advstatcomp/rejection-sampling.html#empirical-supremum-rejection-sampling).
+The `est_ratio_max` method returns the estimated maximum ratio and the point at
+which it was attained, so we need only keep the first return value:
 
 ```python
 key, subkey = random.split(key)
-bank.ratio_max = bank.est_ratio_max(subkey)
+bank.ratio_max = bank.est_ratio_max(subkey)[0]
 ```
 
 Now we can fill our bank! Let's use the random bank generation scheme from our paper:
