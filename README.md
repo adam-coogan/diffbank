@@ -2,6 +2,8 @@
 
 [![docs](https://readthedocs.org/projects/diffbank/badge/?version=latest)](http://diffbank.readthedocs.io/?badge=latest)
  ![tests](https://github.com/adam-coogan/diffbank/actions/workflows/python-app.yml/badge.svg)
+[![arXiv](https://img.shields.io/badge/arXiv-2202.09380-b31b1b.svg)](https://arxiv.org/abs/2202.09380)
+
 
 Gravitational wave template bank generation made easy. For details, check out the
 [documentation](https://diffbank.readthedocs.io/en/latest/).
@@ -14,7 +16,7 @@ if you want to download the banks in the repo.
 
 ## Citing
 
-If you use `diffbank` in your work, please cite:
+If you use `diffbank` in your work, please cite [our paper](https://arxiv.org/pdf/2202.09380):
 
 ```text
 @article{Coogan:2022qxs,

@@ -17,7 +17,7 @@ below to get started.
 
 ## Citing
 
-If you use `diffbank` in your work, please cite:
+If you use `diffbank` in your work, please cite [our paper](https://arxiv.org/pdf/2202.09380):
 
 ```text
 @article{Coogan:2022qxs,
