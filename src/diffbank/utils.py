@@ -7,7 +7,7 @@ Warning:
 """
 from contextlib import nullcontext
 from math import pi
-from typing import Callable, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
@@ -518,6 +518,8 @@ def gen_bank_random(
     eff_pt_sampler: Callable[[PRNGKeyArray], Array] = None,
     n_eff: int = 1000,
     show_progress: bool = True,
+    callback_interval: Optional[int] = None,
+    callback_fn: Optional[Callable[[Array, Array], Array]] = None,
 ) -> Tuple[Array, Array]:
     r"""
     Generates a random bank using the method introduced in Coogan et al 2022.
@@ -545,6 +547,10 @@ def gen_bank_random(
             as templates
         n_eff: the number of effectualness points used to monitor convergence
         show_progress: displays a ``tqdm`` progress bar if ``True``
+        callback_interval: ``callback_fn`` will be called every time ``callback_interval``
+            more effectualness points are covered
+        callback_fn: callback taking the current number of templates and the effectualness
+            points as arguments. Useful for saving checkpoints.
 
     Returns:
         The array of template positions and effectualness points used to monitor
@@ -593,6 +599,12 @@ def gen_bank_random(
                 pbar.update(int(dn_covered))  # type: ignore
                 pbar.set_postfix_str(f"n_templates = {len(templates)}")  # type: ignore
 
+            if callback_interval:
+                assert callback_interval > 0
+                if n_covered % callback_interval == 0:
+                    callback_fn(jnp.array(templates), eff_pts)
+
+
     return jnp.array(templates), eff_pts
 
 
@@ -606,6 +618,8 @@ def gen_bank_stochastic(
     n_eff: int = 1000,
     show_progress: bool = True,
     n_acc_monitoring: int = 1,  # number of iterations for acc rate moving average
+    callback_interval: Optional[int] = None,
+    callback_fn: Optional[Callable[[Array, Array], Array]] = None,
 ) -> Tuple[Array, Array]:
     r"""
     Generates a stochastic bank by adding an accept/reject step to the random
@@ -633,6 +647,10 @@ def gen_bank_stochastic(
         n_acc_monitoring: number of iterations to use for moving average
             calculation of the acceptance rate. Only relevant if
             ``show_progress`` is ``True``.
+        callback_interval: ``callback_fn`` will be called every time ``callback_interval``
+            more effectualness points are covered
+        callback_fn: callback taking the current number of templates and the effectualness
+            points as arguments. Useful for saving checkpoints.
 
     Returns:
         The array of template positions and effectualness points used to monitor
@@ -700,6 +718,11 @@ def gen_bank_stochastic(
                 pbar.set_postfix_str(  # type: ignore
                     f"acc rate = {acc_rate:.3f}, {len(templates)} / {n_proposals}"
                 )
+
+            if callback_interval:
+                assert callback_interval > 0
+                if n_covered % callback_interval == 0:
+                    callback_fn(jnp.array(templates), eff_pts)
 
     return jnp.array(templates), eff_pts
 

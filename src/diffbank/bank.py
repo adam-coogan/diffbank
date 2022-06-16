@@ -268,6 +268,8 @@ class Bank:
         method="random",
         n_eff: int = 1000,
         show_progress: bool = True,
+        save_interval: Optional[int] = 20,
+        save_path: str = "",
     ):
         """
         Fills the bank with the required number of templates using the random or
@@ -285,6 +287,12 @@ class Bank:
                 " maximum value of sqrt(|g|)"
             )
 
+        save_callback = lambda t, ep: jnp.savez(
+            os.path.join(save_path, f"{self.name}-checkpoint.npz"),
+            templates=t,
+            eff_pts=ep,
+        )
+
         if method == "random":
             self.templates, _ = gen_bank_random(
                 key,
@@ -297,6 +305,8 @@ class Bank:
                 self.density_fun_base,
                 n_eff=n_eff,
                 show_progress=show_progress,
+                callback_interval=save_interval,
+                callback_fn=save_callback
             )
             self.n_templates = len(self.templates)
         elif method == "stochastic":
@@ -310,6 +320,8 @@ class Bank:
                 propose_template,
                 n_eff=n_eff,
                 show_progress=show_progress,
+                callback_interval=save_interval,
+                callback_fn=save_callback
             )
             self.n_templates = len(self.templates)
 
