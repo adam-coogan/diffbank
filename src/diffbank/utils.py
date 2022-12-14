@@ -588,6 +588,7 @@ def gen_bank_random(
     if templates is None:
         templates = []
     else:
+        print(f"Starting from n_templates = {len(templates)}")
         templates = list(templates)
 
     n_ko = int(jnp.ceil(n_eff * eta))
