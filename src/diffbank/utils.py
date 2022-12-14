@@ -8,6 +8,7 @@ Warning:
 from contextlib import nullcontext
 from math import pi
 from typing import Callable, Optional, Tuple, Union
+import typing
 
 import jax
 import jax.numpy as jnp
@@ -17,7 +18,8 @@ from tqdm.auto import tqdm, trange
 from .constants import C, G
 
 # TODO: what type should this be?
-PRNGKeyArray = jax._src.prng.PRNGKeyArray  # type: ignore
+# PRNGKeyArray = jax._src.prng.PRNGKeyArray  # type: ignore
+PRNGKeyArray = typing.Any
 Array = jnp.ndarray
 
 
@@ -499,10 +501,7 @@ def _update_uncovered_eff(
     covered by a template.
     """
     return jax.lax.cond(
-        eff < minimum_match,
-        lambda pt: match_fun(template, pt),
-        lambda _: eff,
-        pt,
+        eff < minimum_match, lambda pt: match_fun(template, pt), lambda _: eff, pt,
     )
 
 
@@ -520,6 +519,9 @@ def gen_bank_random(
     show_progress: bool = True,
     callback_interval: Optional[int] = None,
     callback_fn: Optional[Callable[[Array, Array], Array]] = None,
+    templates=None,
+    eff_pts=None,
+    effs=None,
 ) -> Tuple[Array, Array]:
     r"""
     Generates a random bank using the method introduced in Coogan et al 2022.
@@ -567,9 +569,12 @@ def gen_bank_random(
 
     # Generate points for effectualness monitoring
     key, subkey = random.split(key)
-    eff_pts = jnp.array([eff_pt_sampler(k) for k in random.split(subkey, n_eff)])
-    effs = jnp.zeros(n_eff)
-    n_covered = 0
+    if eff_pts is None:
+        eff_pts = jnp.array([eff_pt_sampler(k) for k in random.split(subkey, n_eff)])
+        effs = jnp.zeros(n_eff)
+        n_covered = 0
+    else:
+        n_covered = (effs > minimum_match).sum()
 
     # Close over eff_pts
     @jax.jit
@@ -580,9 +585,13 @@ def gen_bank_random(
         return jax.vmap(update)({"point": eff_pts, "eff": effs})
 
     # Fill the bank!
-    templates = []
+    if templates is None:
+        templates = []
+    else:
+        templates = list(templates)
+
     n_ko = int(jnp.ceil(n_eff * eta))
-    with tqdm(total=n_ko) if show_progress else nullcontext() as pbar:
+    with tqdm(total=n_ko - n_covered) if show_progress else nullcontext() as pbar:
         while n_covered < n_ko:
             # Make template
             key, key_template = random.split(key)
@@ -602,8 +611,7 @@ def gen_bank_random(
             if callback_interval:
                 assert callback_interval > 0
                 if n_covered % callback_interval == 0:
-                    callback_fn(jnp.array(templates), eff_pts)
-
+                    callback_fn(jnp.array(templates), eff_pts, effs)
 
     return jnp.array(templates), eff_pts
 

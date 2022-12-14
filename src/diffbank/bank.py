@@ -48,12 +48,7 @@ class Bank:
     bank. For example, this includes ``"templates"``.
     """
     provided_vars: Set[str] = set(
-        [
-            "fs",
-            "m_star",
-            "eta",
-            "name",
-        ]
+        ["fs", "m_star", "eta", "name",]
     )
     """
     The names of attributes containing data the user provides when initialing a
@@ -267,6 +262,7 @@ class Bank:
         key: PRNGKeyArray,
         method="random",
         n_eff: int = 1000,
+        effs=None,
         show_progress: bool = True,
         save_interval: Optional[int] = 20,
         save_path: str = "",
@@ -287,10 +283,11 @@ class Bank:
                 " maximum value of sqrt(|g|)"
             )
 
-        save_callback = lambda t, ep: jnp.savez(
+        save_callback = lambda t, ep, e: jnp.savez(
             os.path.join(save_path, f"{self.name}-checkpoint.npz"),
             templates=t,
             eff_pts=ep,
+            eff=e,
         )
 
         if method == "random":
@@ -306,7 +303,10 @@ class Bank:
                 n_eff=n_eff,
                 show_progress=show_progress,
                 callback_interval=save_interval,
-                callback_fn=save_callback
+                callback_fn=save_callback,
+                templates=self.templates,
+                eff_pts=self.effectualness_points,
+                effs=effs,
             )
             self.n_templates = len(self.templates)
         elif method == "stochastic":
@@ -321,7 +321,7 @@ class Bank:
                 n_eff=n_eff,
                 show_progress=show_progress,
                 callback_interval=save_interval,
-                callback_fn=save_callback
+                callback_fn=save_callback,
             )
             self.n_templates = len(self.templates)
 
