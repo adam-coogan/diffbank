@@ -11,7 +11,7 @@ Makes sure the TaylorF2 metric calculation doesn't give infinities or nans.
 """
 
 
-def test_taylorf2_dets():
+def test_taylorf2_dets(return_vals=False):
     amp = lambda f, theta: jit(_amp)(f, theta)
     Psi = lambda f, theta: jit(_Psi)(f, theta)
 
@@ -28,8 +28,10 @@ def test_taylorf2_dets():
 
     assert not (jnp.isinf(det_g) or jnp.isnan(det_g) or det_g <= 0)
     print(g, jnp.linalg.det(gam), det_g)
-    return jnp.linalg.det(gam), det_g
+
+    if return_vals:
+        return jnp.linalg.det(gam), det_g
 
 
 if __name__ == "__main__":
-    test_taylorf2_dets()
+    test_taylorf2_dets(return_vals=True)
