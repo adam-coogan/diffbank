@@ -283,11 +283,12 @@ class Bank:
                 " maximum value of sqrt(|g|)"
             )
 
-        save_callback = lambda t, ep, e: jnp.savez(
+        save_callback = lambda t, ep, e, k: jnp.savez(
             os.path.join(save_path, f"{self.name}-checkpoint.npz"),
             templates=t,
             eff_pts=ep,
             eff=e,
+            key=k,
         )
 
         if method == "random":

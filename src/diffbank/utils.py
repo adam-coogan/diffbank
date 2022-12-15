@@ -515,7 +515,7 @@ def gen_bank_random(
     n_eff: int = 1000,
     show_progress: bool = True,
     callback_interval: Optional[int] = None,
-    callback_fn: Optional[Callable[[Array, Array, Array], Array]] = None,
+    callback_fn: Optional[Callable[[Array, Array, Array, PRNGKeyArray], Array]] = None,
     templates=None,
     eff_pts=None,
     effs=None,
@@ -565,8 +565,8 @@ def gen_bank_random(
         eff_pt_sampler = gen_template
 
     # Generate points for effectualness monitoring
-    key, subkey = random.split(key)
     if eff_pts is None and effs is None and templates is None:
+        key, subkey = random.split(key)
         templates = []
         eff_pts = jnp.array([eff_pt_sampler(k) for k in random.split(subkey, n_eff)])
         effs = jnp.zeros(n_eff)
@@ -576,7 +576,9 @@ def gen_bank_random(
         print(f"Starting from n_templates = {len(templates)}")
         n_covered = (effs > minimum_match).sum()
     else:
-        raise ValueError("eff_pts, effs and templates must all be None or both be defined")
+        raise ValueError(
+            "eff_pts, effs and templates must all be None or both be defined"
+        )
 
     # Close over eff_pts
     @jax.jit
@@ -588,6 +590,7 @@ def gen_bank_random(
 
     # Fill the bank!
     n_ko = int(jnp.ceil(n_eff * eta))
+    need_to_save = True
     with tqdm(total=n_ko - n_covered) if show_progress else nullcontext() as pbar:
         while n_covered < n_ko:
             # Make template
@@ -599,6 +602,8 @@ def gen_bank_random(
             effs = update_uncovered_effs(template, effs)
             # Update coverage count
             dn_covered = (effs > minimum_match).sum() - n_covered
+            if dn_covered > 0:
+                need_to_save = True
             n_covered += dn_covered
 
             if show_progress:  # pbar is a tqdm
@@ -607,8 +612,9 @@ def gen_bank_random(
 
             if callback_interval and callback_fn is not None:
                 assert callback_interval > 0
-                if n_covered % callback_interval == 0:
-                    callback_fn(jnp.array(templates), eff_pts, effs)
+                if n_covered % callback_interval == 0 and need_to_save:
+                    need_to_save = False
+                    callback_fn(jnp.array(templates), eff_pts, effs, key)
 
     return jnp.array(templates), eff_pts
 
@@ -624,7 +630,7 @@ def gen_bank_stochastic(
     show_progress: bool = True,
     n_acc_monitoring: int = 1,  # number of iterations for acc rate moving average
     callback_interval: Optional[int] = None,
-    callback_fn: Optional[Callable[[Array, Array, Array], Array]] = None,
+    callback_fn: Optional[Callable[[Array, Array, Array, PRNGKeyArray], Array]] = None,
 ) -> Tuple[Array, Array]:
     r"""
     Generates a stochastic bank by adding an accept/reject step to the random
@@ -692,6 +698,7 @@ def gen_bank_stochastic(
     n_proposals = 1
     acc_rates = []
     n_ko = int(jnp.ceil(n_eff * eta))
+    need_to_save = True
     with tqdm(total=n_ko) if show_progress else nullcontext() as pbar:
         while n_covered < n_ko:
             # Make a template
@@ -716,6 +723,8 @@ def gen_bank_stochastic(
             effs = update_uncovered_effs(template, effs)
             # Update coverage count
             dn_covered = (effs > minimum_match).sum() - n_covered
+            if dn_covered > 0:
+                need_to_save = True
             n_covered += dn_covered
 
             if show_progress:  # pbar is a tqdm
@@ -726,8 +735,9 @@ def gen_bank_stochastic(
 
             if callback_interval and callback_fn is not None:
                 assert callback_interval > 0
-                if n_covered % callback_interval == 0:
-                    callback_fn(jnp.array(templates), eff_pts, effs)
+                if n_covered % callback_interval == 0 and need_to_save:
+                    need_to_save = False
+                    callback_fn(jnp.array(templates), eff_pts, effs, key)
 
     return jnp.array(templates), eff_pts
 
