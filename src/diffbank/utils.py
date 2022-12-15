@@ -8,19 +8,15 @@ Warning:
 from contextlib import nullcontext
 from math import pi
 from typing import Callable, Optional, Tuple, Union
-import typing
 
 import jax
 import jax.numpy as jnp
 from jax import random
+from jax.random import PRNGKeyArray
+from jaxtyping import Array
 from tqdm.auto import tqdm, trange
 
 from .constants import C, G
-
-# TODO: what type should this be?
-# PRNGKeyArray = jax._src.prng.PRNGKeyArray  # type: ignore
-PRNGKeyArray = typing.Any
-Array = jnp.ndarray
 
 
 def ms_to_Mc_eta(m):
@@ -211,16 +207,17 @@ def get_match(
     h1 = amp1(fs, theta1) * jnp.exp(1j * Psi1(fs, theta1))
     h2 = amp2(fs, theta2) * jnp.exp(1j * Psi2(fs, theta2))
     Sns = Sn(fs)
-    return get_match_arr(h1, h2, Sns, fs, pad_low, pad_high)
+    return get_match_arr(h1, h2, Sns, pad_low, pad_high)
 
 
 def get_match_arr(
-    h1: Array, h2: Array, Sns: Array, fs: Array, pad_low: Array, pad_high: Array
+    h1: Array, h2: Array, Sns: Array, pad_low: Array, pad_high: Array
 ) -> Array:
     """
     Calculates the match between two frequency-domain complex strains. The maximizations
     over the difference in time and phase at coalescence are performed by taking
-    the absolute value of the inverse Fourier transform.
+    the absolute value of the inverse Fourier transform. Assumes frequencies are
+    linearly spaced.
 
     Args:
         h1: the first set of strains
@@ -318,7 +315,7 @@ def get_template_frac_in_bounds(
     in_bounds = jnp.concatenate(
         (jnp.array([1.0]), jax.lax.map(is_in_bounds, ellipse_samples))
     )
-    return in_bounds.mean(), in_bounds.std() / jnp.sqrt(n + 1)
+    return jnp.mean(in_bounds), jnp.std(in_bounds) / jnp.sqrt(n + 1)
 
 
 def est_ratio_max(
@@ -514,11 +511,11 @@ def gen_bank_random(
     density_fun: Callable[[Array], Array],
     sample_base: Callable[[PRNGKeyArray, int], Array],
     density_fun_base: Callable[[Array], Array] = lambda _: jnp.array(1.0),
-    eff_pt_sampler: Callable[[PRNGKeyArray], Array] = None,
+    eff_pt_sampler: Optional[Callable[[PRNGKeyArray], Array]] = None,
     n_eff: int = 1000,
     show_progress: bool = True,
     callback_interval: Optional[int] = None,
-    callback_fn: Optional[Callable[[Array, Array], Array]] = None,
+    callback_fn: Optional[Callable[[Array, Array, Array], Array]] = None,
     templates=None,
     eff_pts=None,
     effs=None,
@@ -569,12 +566,17 @@ def gen_bank_random(
 
     # Generate points for effectualness monitoring
     key, subkey = random.split(key)
-    if eff_pts is None:
+    if eff_pts is None and effs is None and templates is None:
+        templates = []
         eff_pts = jnp.array([eff_pt_sampler(k) for k in random.split(subkey, n_eff)])
         effs = jnp.zeros(n_eff)
         n_covered = 0
-    else:
+    elif eff_pts is not None and effs is not None and templates is not None:
+        templates = list(templates)
+        print(f"Starting from n_templates = {len(templates)}")
         n_covered = (effs > minimum_match).sum()
+    else:
+        raise ValueError("eff_pts, effs and templates must all be None or both be defined")
 
     # Close over eff_pts
     @jax.jit
@@ -585,12 +587,6 @@ def gen_bank_random(
         return jax.vmap(update)({"point": eff_pts, "eff": effs})
 
     # Fill the bank!
-    if templates is None:
-        templates = []
-    else:
-        print(f"Starting from n_templates = {len(templates)}")
-        templates = list(templates)
-
     n_ko = int(jnp.ceil(n_eff * eta))
     with tqdm(total=n_ko - n_covered) if show_progress else nullcontext() as pbar:
         while n_covered < n_ko:
@@ -609,7 +605,7 @@ def gen_bank_random(
                 pbar.update(int(dn_covered))  # type: ignore
                 pbar.set_postfix_str(f"n_templates = {len(templates)}")  # type: ignore
 
-            if callback_interval:
+            if callback_interval and callback_fn is not None:
                 assert callback_interval > 0
                 if n_covered % callback_interval == 0:
                     callback_fn(jnp.array(templates), eff_pts, effs)
@@ -628,7 +624,7 @@ def gen_bank_stochastic(
     show_progress: bool = True,
     n_acc_monitoring: int = 1,  # number of iterations for acc rate moving average
     callback_interval: Optional[int] = None,
-    callback_fn: Optional[Callable[[Array, Array], Array]] = None,
+    callback_fn: Optional[Callable[[Array, Array, Array], Array]] = None,
 ) -> Tuple[Array, Array]:
     r"""
     Generates a stochastic bank by adding an accept/reject step to the random
@@ -728,10 +724,10 @@ def gen_bank_stochastic(
                     f"acc rate = {acc_rate:.3f}, {len(templates)} / {n_proposals}"
                 )
 
-            if callback_interval:
+            if callback_interval and callback_fn is not None:
                 assert callback_interval > 0
                 if n_covered % callback_interval == 0:
-                    callback_fn(jnp.array(templates), eff_pts)
+                    callback_fn(jnp.array(templates), eff_pts, effs)
 
     return jnp.array(templates), eff_pts
 
